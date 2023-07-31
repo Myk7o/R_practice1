@@ -1,0 +1,262 @@
+---
+title: "Homework1_STAT515"
+author: "Mykola Signayevskyy"
+date: "2023-02-11"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+#### Question 1:
+
+The data sets here consists of applications f,or admission to graduate study at the University of California, Berkeley for the Fall 1973. "Admission.csv" contains university level admission status and "Original_Admissions_Data.csv" contains admissions by each department.
+
+1.  Using GGplot create an appropriate graphic to show the university-level Admissions. (Hint: Female and male applications admitted and rejected (stacked bar plot (2 bars), admitted and rejected broken down by % male/female.) (Use Admissions.csv).
+
+```{r}
+library(tidyverse)
+library(scales)
+
+source("/Users/mykola/Desktop/STAT515/third_lesson/hw.R")
+
+```
+
+```{r}
+admission <- read_csv("Admission.csv")
+
+table(is.na(admission))
+summary(admission)
+str(admission)
+```
+```{r}
+admission$Admit_gender = paste(admission$Gender, admission$Admit, sep=' ')
+print(admission)
+```
+
+
+```{r}
+ggplot(admission) +
+  geom_bar(aes(x=Admit,y=Prop,fill=Gender),stat="identity", color="black") +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
+  labs(x="Application results",
+       y="Percentage",
+       title="Admission Dataset",
+       fill="Gender") + hw
+```
+
+
+
+
+
+
+2.  Assume admissions are conducted at the department level. Create an appropriate graphic to show the department level Admissions. (use Original_Admissions_Data.csv). (Hint: Let's look at %male/female for admitted and rejected applicants by department.)
+
+```{r}
+admission_department <- read.csv("Original_Admissions_Data.csv")
+table(is.na(admission_department))
+```
+
+
+```{r}
+summary(admission_department)
+```
+```{r}
+admission_department_sort <- gather(admission_department, key = application_result, value = amount,Male_Admitted:Female_Rejected,
+  factor_key = T)
+
+head(admission_department_sort, n=10)
+```
+```{r}
+ggplot(admission_department_sort) +
+  geom_bar(aes(x=Dept,y=amount,fill=application_result),stat="identity", color="black") +
+  labs(x="Application results",
+       y="Count",
+       title="Admission by Departments",
+       fill="Department") + hw
+
+```
+
+
+3. Are admissions gender biased? What other factors could influence admission rates? Discuss.
+
+###### You can see that the percentage of acceptance of different genders depends on the department. So in department A the percentage of acceptance is higher in the females, while in department C the males were more often approved. We can also assume that the total number of applications from either gender influenced the committee's negative response to the student application (the more applications from either gender, the higher the rejection rate, but there are exceptions like Department A). And, of course, we can see that the males sent applications more often.
+
+#### Question 2:
+
+The data set used, represents gene expression data for multiple samples. Use `gene expression.csv` for this question.
+
+1.  Create a scatter plot representing gene expression of "sampleB" on the X-axis and "sampleH" on the Y-axis. What kind of relationship do you observe?
+
+```{r}
+gene <- read_csv("gene expression.csv")
+table(is.na(gene))
+gene = na.omit(gene)
+table(is.na(gene))
+```
+```{r}
+summary(gene)
+```
+```{r warning=FALSE}
+plt_HB <- ggplot(gene, aes(x = sampleB, y = sampleH)) +
+  geom_point(shape = 21, size = 2.5, fill = "black", color = "white") +
+  geom_smooth(method = lm, color = "blue", linewidth = 1.1) +
+  labs(x="Sample B",
+       y="Sample H",
+       title="Samples B and H") + hw
+plt_HB
+```
+
+##### The graph above shows that samples B and H have pretty similar values for each gene type, with some noise exeptions. 
+
+2.  Add a column to the data frame, according to the following conditions:
+
+    -   Name the new column as "expre_limit".
+
+    -   If the expression of a gene is \> 13 in both sampleB and sampleH, set to the value in "expre_limits" to "high".
+
+    -   If the expression of a gene is \< 6 in both sampleB and sampleH, set it to "low".
+
+    -   If different, set it to "normal".
+
+```{r}
+gene <- gene %>% 
+  mutate(expre_limit = case_when((sampleB > 13 & sampleH > 13) ~ "high", 
+                               (sampleB < 6 & sampleH < 6) ~ "low",
+                               .default = "normal"
+                               )) #adding new column "expre_limit" with described restrictions
+
+head(gene)
+```
+```{r}
+gene %>% 
+  select(sampleB, sampleH, expre_limit) %>% 
+  head(., 10) #checking more samples to be sure everything works correctly 
+```
+3.  Color the points of the scatter plot according to the newly created column "expre_limits". Save that plot in the object "plot1".
+### AND
+4.  Rename the legend title as "Expression Limits".
+```{r warning=FALSE}
+gene2 <- ggplot(gene, aes( x=sampleB, y=sampleH))
+gene2 + geom_point()  + hw
+```
+```{r}
+plot1 <- gene2 + geom_point( aes( color = expre_limit) ) +
+  labs(title = "Expression Limits",
+       x="Sample B",
+       y="Sample H") +hw
+plot1
+```
+
+
+5.  Add another layer to "plot1" in order to change the points colors to blue (for low), grey (for normal) and red (for high). Save this plot in the object "plot2".
+
+```{r}
+plot2 <- plot1 + scale_color_manual(values=c("red","blue", "grey"))+ hw
+plot2
+```
+
+6.  Produce a bar plot of how many low/normal/high genes are in the column 'expre_limits'. Save this plot as "plot3".
+```{r}
+plot3 <- ggplot(gene, aes(x=expre_limit, fill=expre_limit))+
+  geom_bar(color="black") +        
+  labs(x="Expression Limits",
+       y="Count",
+       title="Expression Limits Count")+ hw +
+  theme(legend.position="none")
+plot3
+```
+
+
+
+7. To plot3, add an horizontal line at counts = 250
+```{r}
+plot3 <- plot3 + geom_hline(yintercept=250) + hw
+plot3
+```
+
+8.  Swap the X-axis and the Y-axis of the plot from part 7).
+```{r}
+plot3 + coord_flip()
+```
+
+
+#### Question 3:
+
+Titanic data set from `Kaggle.com` is used for this example. Please use `titanic.csv` for this question.
+
+
+
+1. Is there a relationship between the age of the passenger and the passenger fare? Explore this by constructing a scatter plot.
+```{r}
+titanic <- read_csv("titanic.csv")
+
+table(is.na(titanic))
+summary(titanic)
+str(titanic)
+head(titanic, n=10)
+```
+
+```{r}
+titanic_plt <- ggplot(titanic,aes(x=Age,y=Fare)) +
+  geom_point() +
+  geom_smooth(method ="lm") + hw
+titanic_plt
+```
+
+
+
+
+##### As I can see there is no significant relationship between passengers age and fare. However, I could say that the passengers who allowed themselves to buy more expensive tickets were in the age group of 20-50. Nevertheless, this is explained by the fact that there are clearly fewer children and elderly people than middle-aged passengers. 
+
+2.  Color the points from question 1 by Pclass. Remember that Pclass is a proxy for socioeconomic status.
+```{r}
+titanic_plt + geom_point( aes( color = Pclass) ) + hw
+```
+
+3.  Manually scale the colors in question 4. 1st class = red, 2nd class = purple, 3rd class = seagreen. Also change the legend labels (1 = 1st Class, 2 = 2nd Class, 3 = 3rd Class).
+
+```{r}
+titanic_new <- titanic %>% 
+  mutate(Pclass_new = case_when((Pclass == 1) ~ "1st Class", 
+                               (Pclass == 2) ~ "2nd Class",
+                               (Pclass == 3) ~ "3rd Class"
+                               )) #creating a new column for better data visualization and processing process.
+
+head(titanic_new)
+```
+
+
+```{r}
+titanic_plt2 <- ggplot(titanic_new, aes( x=Age, y=Fare) )
+titanic_plt2 + geom_point()  + hw
+```
+```{r}
+titanic_plt3 <- titanic_plt2 + geom_point(aes(color=Pclass_new)) + scale_color_manual(values = c("red", "purple", "seagreen"))+hw
+titanic_plt3
+```
+
+
+4.  Create Juxtaposed plots for the scatter plot made in 3 by the column 'Sex'
+
+```{r}
+titanic_plt3 + facet_grid(~Sex) +hw
+```
+
+
+5.  Plot the number of passengers (a simple count) that survived by ticket class.
+```{r}
+titanic_new2 <- titanic_new %>% 
+  mutate(Survived_chr = case_when((Survived == 1) ~ "Yes", 
+                               (Survived == 0) ~ "No"))
+
+ggplot(titanic_new2) +
+  geom_bar(aes(x=Survived_chr,fill=Pclass_new), color="black") +
+  labs(x="Survived? ",
+       y="Count",
+       title="Passengers surviability by a ticket class",
+       fill="Ticket class") + hw
+```
+```{r}
+count(titanic_new2, surviability=Survived_chr, TicketClass=Pclass_new) 
+```
+
